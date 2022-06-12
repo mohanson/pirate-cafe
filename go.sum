@@ -1,0 +1,6 @@
+github.com/godump/cron v0.1.4 h1:24Bzo3xg2HgT3k6Rj+EIi3fbG/1g8G9j+Uf7/iSa1+g=
+github.com/godump/cron v0.1.4/go.mod h1:/lGk9e3i1FjfZQZGG23IrKDdI28Mm+Sm51m618ZCl4k=
+github.com/godump/doa v0.1.2 h1:Aufbkzo4Vxzg59qs926F1pA4tZ5WuoWPvOpLbv6jKrc=
+github.com/godump/doa v0.1.2/go.mod h1:a3ECk/aqWBm9dR74TgcPYRZ6ZKkz/R0qIjhGSKxmWhM=
+github.com/godump/gracefulexit v0.1.1 h1:RWi2JxSPIIe7HBAMTI9XTbL/bPqJPK4HICG6IatoVRs=
+github.com/godump/gracefulexit v0.1.1/go.mod h1:pHKnwOMRgnpELHitoPerzuy+xXWZYsGz9YQZJ7CMb4M=
