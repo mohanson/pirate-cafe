@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	fDataPath              = flag.String("d", "./pirate-data", "data path")
+	fDataPath              = flag.String("d", "./pirate", "data path")
 	cCapacity       uint64 = 1024 * 1024 * 1024 * 8
 	cSeedTime              = 60 * 24
 	cSeedRatio             = 8
@@ -129,6 +129,7 @@ func NewDazePirate() *PirateDaze {
 }
 
 func main() {
+	flag.Parse()
 	_, err := exec.LookPath("aria2c")
 	if err != nil {
 		log.Println("main: aria2c not found, checkout https://aria2.github.io/ for how to install it.")
@@ -143,6 +144,7 @@ func main() {
 	}()
 	if err != nil {
 		log.Println("main:", err)
+		return
 	}
 	daze := NewDazePirate()
 	daze.Capacity = cCapacity
