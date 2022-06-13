@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -156,7 +157,7 @@ func main() {
 	}
 	daze.Data()
 	daze.Join()
-	chanPing := cron.Cron(time.Hour)
+	chanPing := cron.Cron(time.Minute * time.Duration(30+rand.Int63n(30)))
 	chanExit := gracefulexit.Chan()
 	done := 0
 	log.Println("main: loop")
