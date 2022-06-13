@@ -25,6 +25,7 @@ var (
 	cSeedTime              = 60 * 24
 	cSeedRatio             = 8
 	cMaxUploadLimit        = "128K"
+	cMaxWorker             = 10
 )
 
 type AriaClient struct {
@@ -88,6 +89,9 @@ func (d *PirateDaze) Scan() {
 func (d *PirateDaze) Join() {
 	sum := d.Size()
 	for _, e := range d.Browse {
+		if len(d.Aria2c) >= cMaxWorker {
+			continue
+		}
 		if sum+e.Size > d.Capacity {
 			continue
 		}
