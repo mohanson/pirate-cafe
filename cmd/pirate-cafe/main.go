@@ -75,7 +75,7 @@ func (d *PirateDaze) Data() {
 func (d *PirateDaze) Scan() {
 	arr := []*AriaClient{}
 	for _, e := range d.Aria2c {
-		if e.Cmd.ProcessState == nil || e.Cmd.ProcessState.Exited() {
+		if e.Cmd.ProcessState != nil {
 			log.Println("main: exit", e.Name)
 			os.RemoveAll(filepath.Join(d.DataPath, e.Name))
 			os.Remove(filepath.Join(d.DataPath, e.Name+".aria2"))
