@@ -46,14 +46,31 @@ type PirateDaze struct {
 	DataPath string
 }
 
-func (d *PirateDaze) Search() {
+func (d *PirateDaze) Find(name string) (b bool) {
+	for _, e := range d.Aria2c {
+		b = e.Name == name
+		if b {
+			break
+		}
+	}
+	return
+}
+
+func (d *PirateDaze) Size() (size uint64) {
+	for _, e := range d.Aria2c {
+		size += e.Size
+	}
+	return
+}
+
+func (d *PirateDaze) Data() {
 	r := doa.Try(http.Get("https://apibay.org/precompiled/data_top100_recent.json"))
 	defer r.Body.Close()
 	data := doa.Try(ioutil.ReadAll(r.Body))
 	doa.Nil(json.Unmarshal(data, &d.Browse))
 }
 
-func (d *PirateDaze) Remove() {
+func (d *PirateDaze) Scan() {
 	arr := []*AriaClient{}
 	for _, e := range d.Aria2c {
 		if e.Cmd.ProcessState.Exited() {
@@ -66,21 +83,16 @@ func (d *PirateDaze) Remove() {
 	d.Aria2c = arr
 }
 
-func (d *PirateDaze) Create() {
-	size := uint64(0)
-	for _, e := range d.Aria2c {
-		size += e.Size
-	}
+func (d *PirateDaze) Join() {
+	sum := d.Size()
 	for _, e := range d.Browse {
-		if size+e.Size > d.Capacity {
+		if sum+e.Size > d.Capacity {
 			continue
 		}
-		for _, f := range d.Aria2c {
-			if e.Name == f.Name {
-				continue
-			}
+		if d.Find(e.Name) {
+			continue
 		}
-		size += e.Size
+		sum += e.Size
 		log.Println("main: join", e.Name)
 		// Doc: https://aria2.github.io/manual/en/html/aria2c.html
 		args := []string{
@@ -103,11 +115,10 @@ func (d *PirateDaze) Create() {
 
 func (d *PirateDaze) Exit() {
 	for _, e := range d.Aria2c {
-		log.Println("main: exit", e.Name)
 		e.Cmd.Process.Signal(syscall.SIGINT)
 		e.Cmd.Wait()
-		doa.Nil(os.RemoveAll(filepath.Join(d.DataPath, e.Name)))
 	}
+	d.Scan()
 }
 
 func NewDazePirate() *PirateDaze {
@@ -141,8 +152,8 @@ func main() {
 		log.Println("main:", daze.DataPath, "is not empty")
 		return
 	}
-	daze.Search()
-	daze.Create()
+	daze.Data()
+	daze.Join()
 	chanPing := cron.Cron(time.Hour)
 	chanExit := gracefulexit.Chan()
 	done := 0
@@ -150,9 +161,9 @@ func main() {
 	for {
 		select {
 		case <-chanPing:
-			daze.Remove()
-			daze.Search()
-			daze.Create()
+			daze.Scan()
+			daze.Data()
+			daze.Join()
 		case <-chanExit:
 			daze.Exit()
 			done = 1
