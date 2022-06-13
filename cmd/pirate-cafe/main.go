@@ -76,7 +76,8 @@ func (d *PirateDaze) Scan() {
 	for _, e := range d.Aria2c {
 		if e.Cmd.ProcessState.Exited() {
 			log.Println("main: exit", e.Name)
-			doa.Nil(os.RemoveAll(filepath.Join(d.DataPath, e.Name)))
+			os.RemoveAll(filepath.Join(d.DataPath, e.Name))
+			os.Remove(filepath.Join(d.DataPath, e.Name+".aria2"))
 			continue
 		}
 		arr = append(arr, e)
@@ -97,6 +98,7 @@ func (d *PirateDaze) Join() {
 		log.Println("main: join", e.Name)
 		// Doc: https://aria2.github.io/manual/en/html/aria2c.html
 		args := []string{
+			fmt.Sprintf("--dir=%s", e.Name),
 			fmt.Sprintf("--max-upload-limit=%s", cMaxUploadLimit),
 			fmt.Sprintf("--seed-ratio=%d", cSeedRatio),
 			fmt.Sprintf("--seed-time=%d", cSeedTime),
