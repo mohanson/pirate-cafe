@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,7 +19,7 @@ import (
 )
 
 var (
-	cDataPath              = "./pirate-data"
+	fDataPath              = flag.String("d", "./pirate-data", "data path")
 	cCapacity       uint64 = 1024 * 1024 * 1024 * 8
 	cSeedTime              = 60 * 24
 	cSeedRatio             = 8
@@ -74,6 +75,11 @@ func (d *PirateDaze) Create() {
 		if size+e.Size > d.Capacity {
 			continue
 		}
+		for _, f := range d.Aria2c {
+			if e.Name == f.Name {
+				continue
+			}
+		}
 		size += e.Size
 		log.Println("main: join", e.Name)
 		// Doc: https://aria2.github.io/manual/en/html/aria2c.html
@@ -117,9 +123,19 @@ func main() {
 		log.Println("main: aria2c not found, checkout https://aria2.github.io/ for how to install it.")
 		return
 	}
+	p, err := func() (string, error) {
+		if filepath.IsAbs(*fDataPath) {
+			return *fDataPath, nil
+		} else {
+			return filepath.Abs(filepath.Join(filepath.Dir(doa.Try(os.Executable())), *fDataPath))
+		}
+	}()
+	if err != nil {
+		log.Println("main:", err)
+	}
 	daze := NewDazePirate()
 	daze.Capacity = cCapacity
-	daze.DataPath = doa.Try(filepath.Abs(cDataPath))
+	daze.DataPath = p
 	doa.Nil(os.MkdirAll(daze.DataPath, 0755))
 	if len(doa.Try(ioutil.ReadDir(daze.DataPath))) != 0 {
 		log.Println("main:", daze.DataPath, "is not empty")
