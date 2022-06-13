@@ -2,11 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,9 +18,19 @@ import (
 )
 
 var (
-	fDataPath = flag.String("datapath", "./pirate", "")
-	fCapacity = flag.Uint64("capacity", 1024*1024*1024*8, "")
+	cDataPath              = "./pirate-data"
+	cCapacity       uint64 = 1024 * 1024 * 1024 * 8
+	cSeedTime              = 60 * 24
+	cSeedRatio             = 8
+	cMaxUploadLimit        = "128K"
 )
+
+type AriaClient struct {
+	Add  time.Time
+	Cmd  *exec.Cmd
+	Name string
+	Size uint64
+}
 
 type PirateItem struct {
 	InfoHash string `json:"info_hash"`
@@ -31,17 +39,10 @@ type PirateItem struct {
 }
 
 type PirateDaze struct {
-	Aria2c   *exec.Cmd
-	Browse   []PirateItem
+	Aria2c   []*AriaClient
+	Browse   []*PirateItem
 	Capacity uint64
 	DataPath string
-}
-
-func (d *PirateDaze) Delete() {
-	for _, e := range doa.Try(ioutil.ReadDir(d.DataPath)) {
-		p := filepath.Join(d.DataPath, e.Name())
-		doa.Nil(os.RemoveAll(p))
-	}
 }
 
 func (d *PirateDaze) Search() {
@@ -49,81 +50,95 @@ func (d *PirateDaze) Search() {
 	defer r.Body.Close()
 	data := doa.Try(ioutil.ReadAll(r.Body))
 	doa.Nil(json.Unmarshal(data, &d.Browse))
-	rand.Shuffle(len(d.Browse), func(i, j int) {
-		d.Browse[i], d.Browse[j] = d.Browse[j], d.Browse[i]
-	})
 }
 
-func (d *PirateDaze) Update() {
-	size := uint64(0)
-	urls := []string{}
-	for _, e := range d.Browse {
-		s := e.Size
-		if size+s > d.Capacity {
+func (d *PirateDaze) Remove() {
+	arr := []*AriaClient{}
+	for _, e := range d.Aria2c {
+		if e.Cmd.ProcessState.Exited() {
+			log.Println("main: exit", e.Name)
+			doa.Nil(os.RemoveAll(filepath.Join(d.DataPath, e.Name)))
 			continue
 		}
-		size += s
-		hash := e.InfoHash
-		name := e.Name
-		log.Println("main:", hash, name)
-		urls = append(urls, fmt.Sprintf("magnet:?xt=urn:btih:%s", hash))
+		arr = append(arr, e)
 	}
-	// Doc: https://aria2.github.io/manual/en/html/aria2c.html
-	args := []string{
-		fmt.Sprintf("--max-concurrent-downloads=%d", len(urls)),
-		"--max-overall-upload-limit=1M",
-		"--max-upload-limit=128K",
-		"--seed-ratio=0",
+	d.Aria2c = arr
+}
+
+func (d *PirateDaze) Create() {
+	size := uint64(0)
+	for _, e := range d.Aria2c {
+		size += e.Size
 	}
-	args = append(args, urls...)
-	cmd := exec.Command("aria2c", args...)
-	cmd.Dir = d.DataPath
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Start()
-	d.Aria2c = cmd
+	for _, e := range d.Browse {
+		if size+e.Size > d.Capacity {
+			continue
+		}
+		size += e.Size
+		log.Println("main: join", e.Name)
+		// Doc: https://aria2.github.io/manual/en/html/aria2c.html
+		args := []string{
+			fmt.Sprintf("--max-upload-limit=%s", cMaxUploadLimit),
+			fmt.Sprintf("--seed-ratio=%d", cSeedRatio),
+			fmt.Sprintf("--seed-time=%d", cSeedTime),
+			fmt.Sprintf("magnet:?xt=urn:btih:%s", e.InfoHash),
+		}
+		cmd := exec.Command("aria2c", args...)
+		cmd.Dir = d.DataPath
+		cmd.Start()
+		d.Aria2c = append(d.Aria2c, &AriaClient{
+			Add:  time.Now(),
+			Cmd:  cmd,
+			Name: e.Name,
+			Size: e.Size,
+		})
+	}
+}
+
+func (d *PirateDaze) Exit() {
+	for _, e := range d.Aria2c {
+		log.Println("main: exit", e.Name)
+		e.Cmd.Process.Signal(syscall.SIGINT)
+		e.Cmd.Wait()
+		doa.Nil(os.RemoveAll(filepath.Join(d.DataPath, e.Name)))
+	}
 }
 
 func NewDazePirate() *PirateDaze {
 	return &PirateDaze{
-		Aria2c: nil,
-		Browse: []PirateItem{},
+		Aria2c: []*AriaClient{},
+		Browse: []*PirateItem{},
 	}
 }
 
 func main() {
-	flag.Parse()
 	_, err := exec.LookPath("aria2c")
 	if err != nil {
 		log.Println("main: aria2c not found, checkout https://aria2.github.io/ for how to install it.")
 		return
 	}
 	daze := NewDazePirate()
-	daze.Capacity = *fCapacity
-	daze.DataPath = doa.Try(filepath.Abs(*fDataPath))
+	daze.Capacity = cCapacity
+	daze.DataPath = doa.Try(filepath.Abs(cDataPath))
 	doa.Nil(os.MkdirAll(daze.DataPath, 0755))
 	if len(doa.Try(ioutil.ReadDir(daze.DataPath))) != 0 {
 		log.Println("main:", daze.DataPath, "is not empty")
 		return
 	}
 	daze.Search()
-	daze.Update()
-	chanPing := cron.Cron(time.Hour * 4)
+	daze.Create()
+	chanPing := cron.Cron(time.Hour)
 	chanExit := gracefulexit.Chan()
 	done := 0
 	log.Println("main: loop")
 	for {
 		select {
 		case <-chanPing:
-			daze.Aria2c.Process.Signal(syscall.SIGINT)
-			daze.Aria2c.Wait()
-			daze.Delete()
+			daze.Remove()
 			daze.Search()
-			daze.Update()
+			daze.Create()
 		case <-chanExit:
-			daze.Aria2c.Process.Signal(syscall.SIGINT)
-			daze.Aria2c.Wait()
-			daze.Delete()
+			daze.Exit()
 			done = 1
 		}
 		if done != 0 {
