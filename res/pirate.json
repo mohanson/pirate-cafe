@@ -2,7 +2,7 @@
 	"Capacity": 8,
 	"DataPath": "./pirate-data",
 	"MaxUploadLimit": "128K",
-	"MaxWorker": 10,
+	"MaxWorker": 8,
 	"SeedTime": 1440,
-	"SeedRatio": 8
+	"SeedRatio": 4
 }
