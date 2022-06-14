@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 
 type PirateConf struct {
 	Capacity       int
+	Category       int
 	DataPath       string
 	MaxUploadLimit string
 	MaxWorker      int
@@ -51,7 +53,7 @@ type AriaClient struct {
 type PirateItem struct {
 	InfoHash string `json:"info_hash"`
 	Name     string `json:"name"`
-	Size     int    `json:"size"`
+	Size     string `json:"size"`
 }
 
 type PirateDaze struct {
@@ -79,7 +81,7 @@ func (d *PirateDaze) Size() (size int) {
 }
 
 func (d *PirateDaze) Data() {
-	r := doa.Try(http.Get("https://apibay.org/precompiled/data_top100_recent.json"))
+	r := doa.Try(http.Get(fmt.Sprintf("https://apibay.org/q.php?q=category:%d", cConf.Category)))
 	defer r.Body.Close()
 	data := doa.Try(ioutil.ReadAll(r.Body))
 	doa.Nil(json.Unmarshal(data, &d.Browse))
@@ -102,16 +104,17 @@ func (d *PirateDaze) Scan() {
 func (d *PirateDaze) Join() {
 	sum := d.Size()
 	for _, e := range d.Browse {
+		size := doa.Try(strconv.Atoi(e.Size))
 		if len(d.Aria2c) >= cConf.MaxWorker {
 			continue
 		}
-		if sum+e.Size > d.Capacity {
+		if sum+size > d.Capacity {
 			continue
 		}
 		if d.Find(e.Name) {
 			continue
 		}
-		sum += e.Size
+		sum += size
 		log.Println("main: join", e.Name)
 		// Doc: https://aria2.github.io/manual/en/html/aria2c.html
 		args := []string{
@@ -128,7 +131,7 @@ func (d *PirateDaze) Join() {
 			Add:  time.Now(),
 			Cmd:  cmd,
 			Name: e.Name,
-			Size: e.Size,
+			Size: size,
 		})
 	}
 }

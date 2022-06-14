@@ -1,5 +1,6 @@
 {
 	"Capacity": 8,
+	"Category": 401,
 	"DataPath": "./pirate-data",
 	"MaxUploadLimit": "128K",
 	"MaxWorker": 8,
