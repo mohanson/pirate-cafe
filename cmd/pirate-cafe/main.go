@@ -111,6 +111,7 @@ func (d *PirateDaze) Join() {
 		cmd := exec.Command("aria2c", args...)
 		cmd.Dir = d.DataPath
 		cmd.Start()
+		go cmd.Wait()
 		d.Aria2c = append(d.Aria2c, &AriaClient{
 			Add:  time.Now(),
 			Cmd:  cmd,
