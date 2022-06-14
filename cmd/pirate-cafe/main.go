@@ -110,8 +110,7 @@ func (d *PirateDaze) Join() {
 		}
 		cmd := exec.Command("aria2c", args...)
 		cmd.Dir = d.DataPath
-		cmd.Start()
-		go cmd.Wait()
+		go cmd.Run()
 		d.Aria2c = append(d.Aria2c, &AriaClient{
 			Add:  time.Now(),
 			Cmd:  cmd,
@@ -124,6 +123,8 @@ func (d *PirateDaze) Join() {
 func (d *PirateDaze) Exit() {
 	for _, e := range d.Aria2c {
 		e.Cmd.Process.Signal(syscall.SIGINT)
+	}
+	for _, e := range d.Aria2c {
 		e.Cmd.Wait()
 	}
 	d.Scan()
