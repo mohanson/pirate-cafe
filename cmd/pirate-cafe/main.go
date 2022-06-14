@@ -125,7 +125,9 @@ func (d *PirateDaze) Exit() {
 		e.Cmd.Process.Signal(syscall.SIGINT)
 	}
 	for _, e := range d.Aria2c {
-		e.Cmd.Wait()
+		for e.Cmd.ProcessState == nil {
+			time.Sleep(time.Second)
+		}
 	}
 	d.Scan()
 }
