@@ -1,0 +1,8 @@
+{
+	"Capacity": 8,
+	"DataPath": "./pirate",
+	"MaxUploadLimit": "128K",
+	"MaxWorker": 10,
+	"SeedTime": 1440,
+	"SeedRatio": 8
+}
