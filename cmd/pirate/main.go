@@ -153,6 +153,7 @@ func NewDazePirate() *PirateDaze {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	flag.Parse()
 	_, err := exec.LookPath("aria2c")
 	if err != nil {
