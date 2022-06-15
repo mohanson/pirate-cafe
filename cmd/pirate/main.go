@@ -112,7 +112,7 @@ func (d *PirateDaze) Join() {
 			continue
 		}
 		if d.Find(e.Name) {
-			continue
+			break
 		}
 		sum += size
 		log.Println("main: join", e.Name)
