@@ -81,10 +81,18 @@ func (d *PirateDaze) Size() (size int) {
 }
 
 func (d *PirateDaze) Data() {
-	r := doa.Try(http.Get(fmt.Sprintf("https://apibay.org/q.php?q=category:%d", cConf.Category)))
-	defer r.Body.Close()
-	data := doa.Try(ioutil.ReadAll(r.Body))
-	doa.Nil(json.Unmarshal(data, &d.Browse))
+	for {
+		r, err := http.Get(fmt.Sprintf("https://apibay.org/q.php?q=category:%d", cConf.Category))
+		if err != nil {
+			log.Println("main:", err)
+			time.Sleep(time.Second * 8)
+			continue
+		}
+		data := doa.Try(ioutil.ReadAll(r.Body))
+		doa.Nil(json.Unmarshal(data, &d.Browse))
+		r.Body.Close()
+		break
+	}
 }
 
 func (d *PirateDaze) Scan() {
