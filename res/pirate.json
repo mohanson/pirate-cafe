@@ -2,7 +2,7 @@
 	"Capacity": 8,
 	"Category": 401,
 	"DataPath": "./pirate-data",
-	"MaxUploadLimit": "1M",
+	"MaxUploadLimit": "256K",
 	"MaxWorker": 4,
 	"SeedTime": 1440,
 	"SeedRatio": 4
