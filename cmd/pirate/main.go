@@ -89,8 +89,13 @@ func (d *PirateDaze) Data() {
 			continue
 		}
 		data := doa.Try(ioutil.ReadAll(r.Body))
-		doa.Nil(json.Unmarshal(data, &d.Browse))
 		r.Body.Close()
+		if err := json.Unmarshal(data, &d.Browse); err != nil {
+			log.Println("main:", err)
+			log.Println("main:", string(data))
+			time.Sleep(time.Second * 8)
+			continue
+		}
 		break
 	}
 }
